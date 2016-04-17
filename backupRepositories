@@ -1,0 +1,107 @@
+#!/bin/bash
+
+# Moritz Gelb 
+# April 2016
+
+# Script for making backups of git repositories. 
+
+# variables  
+MAILTO="someone@somehwere.com"
+
+BACKUPVOLUME="/path/to/volume"
+STORAGEPATH=$BACKUPVOLUME/backup
+LOGFILE="backup.log"
+
+# define your repositories and branches here - syntax ( ["name1"]="Path1" ["name2"]="-b branch Path2" ...) 
+# note name must be same like cloned folder
+declare -A REPOS
+REPOS=( <your repositories here> )
+
+
+
+# check if backupvolume is mounted, if not send mail 
+if  ! mount | grep "on ${BACKUPVOLUME} type" > /dev/null
+        then
+        # Write an email and complain
+        COMPLAINT="Hello,\nI was looking for your backup volume $BACKUPVOLUME, but could not find it.\nIs it physically connected?\n Backup is important!\n\n\t Cheers,\n\t backup-bot (running on raspberry pi)"
+        MESSAGE="Subject: [backup-bot] FATAL: Storage not mounted\nFrom: backup-bot@raspberry-pi\nTo: $MAILTO\n\n$COMPLAINT"
+        echo -e $MESSAGE | sendmail someone@somehwere.com
+        exit
+fi
+
+
+# check logfile size, if lager than given value delete it 
+if [ -a $STORAGEPATH/$LOGFILE ]
+        then
+        LOGFILESIZE=`stat -c %s $STORAGEPATH/$LOGFILE`
+        if [ "$LOGFILESIZE" -gt 10000 ]
+                then
+                INFO="Hello,\nthe logfile for backups was quite large.\n I deleted it.\n\n\tCheers,\n\t backup-bot (running on raspberry pi)"
+                LOGWARNING="Subject: [backup-bot] INFO: Logfile was too big.\nFrom: backup-bot@raspberry-pi\nTo: $MAILTO\n\n$INFO"
+                echo -e $LOGWARNING | sendmail someone@somehwere.com
+                rm -f $STORAGEPATH/$LOGFILE
+        fi
+fi
+
+# check for internet connetion, if false exit
+# write logs
+ping -c 5 8.8.8.8 >/dev/null 2>/dev/null
+if [ $? -ge 1 ]
+        then
+	NOW=$(date +"%Y-%m-%d %H:%M:%S")
+	if [ -f $STORAGEPATH/$LOGFILE ]
+		then
+                	echo "$NOW [FATAL] No internet connection, no backup." >> $STORAGEPATH/$LOGFILE
+			exit
+                else
+                        touch $STORAGEPATH/$LOGFILE
+                       	echo "DATE                STATUS   REPOSITORY" >> $STORAGEPATH/$LOGFILE
+                        echo "$NOW\t[FATAL]\tNo internet connection, no backup. " >> $STORAGEPATH/$LOGFILE
+			exit
+                fi
+	else
+	# loop over repositories
+	# check if repositories are cloned, if true git pull and write to logfile
+	for REPOSITORY in "${!REPOS[@]}"
+	do
+		# check if repository is there
+		if [ -d $STORAGEPATH/$REPOSITORY ]
+			then 
+			# check if it has a .git file and git pull
+			if [ -a $STORAGEPATH/$REPOSITORY/.git ]
+				then
+				cd $STORAGEPATH/$REPOSITORY
+				STATUS=$(git pull)
+				NOW=$(date +"%Y-%m-%d %H:%M:%S")
+		
+				cd $STORAGEPATH
+				if [ -f $LOGFILE ]  
+				        then   
+					echo "$NOW [INFO]   $REPOSITORY: $STATUS " >> $LOGFILE
+				else
+				        touch $LOGFILE
+                        		echo "DATE                STATUS   REPOSITORY" >> $LOGFILE
+					echo "$NOW [INFO]   $REPOSITORY: $STATUS " >> $LOGFILE
+				fi 
+			fi
+		# if not check for backup directory and clone repository
+		else 
+			if [ ! -d $STORAGEPATH ]
+				then 
+				mkdir -p $STORAGEPATH
+			fi		
+			cd $STORAGEPATH
+			git clone ${REPOS["$REPOSITORY"]} >/dev/null 2>/dev/null 
+			NOW=$(date +"%Y-%m-%d %H:%M:%S")
+			cd $STORAGEPATH
+	                if [ -f $LOGFILE ]
+				then
+                	        echo "$NOW [INFO]   $REPOSITORY: cloned" >> $LOGFILE
+			else
+        	                touch $LOGFILE
+                        	echo "DATE                STATUS   REPOSITORY" >> $LOGFILE
+				echo "$NOW [INFO]   $REPOSITORY: cloned" >> $LOGFILE
+	                fi
+		fi
+	done 
+fi
