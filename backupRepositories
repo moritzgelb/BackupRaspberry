@@ -6,7 +6,7 @@
 # Script for making backups of git repositories. 
 
 # variables  
-MAILTO="someone@somehwere.com"
+MAIL="someone@somehwere.com"
 
 BACKUPVOLUME="/path/to/volume"
 STORAGEPATH=$BACKUPVOLUME/backup
@@ -25,7 +25,7 @@ if  ! mount | grep "on ${BACKUPVOLUME} type" > /dev/null
         # Write an email and complain
         COMPLAINT="Hello,\nI was looking for your backup volume $BACKUPVOLUME, but could not find it.\nIs it physically connected?\n Backup is important!\n\n\t Cheers,\n\t backup-bot (running on raspberry pi)"
         MESSAGE="Subject: [backup-bot] FATAL: Storage not mounted\nFrom: backup-bot@raspberry-pi\nTo: $MAILTO\n\n$COMPLAINT"
-        echo -e $MESSAGE | sendmail someone@somehwere.com
+        echo -e $MESSAGE | sendmail $MAIL
         exit
 fi
 
@@ -38,7 +38,7 @@ if [ -a $STORAGEPATH/$LOGFILE ]
                 then
                 INFO="Hello,\nthe logfile for backups was quite large.\n I deleted it.\n\n\tCheers,\n\t backup-bot (running on raspberry pi)"
                 LOGWARNING="Subject: [backup-bot] INFO: Logfile was too big.\nFrom: backup-bot@raspberry-pi\nTo: $MAILTO\n\n$INFO"
-                echo -e $LOGWARNING | sendmail someone@somehwere.com
+                echo -e $LOGWARNING | sendmail $MAIL
                 rm -f $STORAGEPATH/$LOGFILE
         fi
 fi

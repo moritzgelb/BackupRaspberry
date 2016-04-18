@@ -6,7 +6,7 @@
 # Script which checks for free space on local backup volume and writes a mail if necessary
  
 # variables
-MAILTO="someone@somewhere.com"
+MAIL="someone@somewhere.com"
 
 BACKUPVOLUME="/path/to/volume"
 STORAGEPATH=$BACKUPVOLUME/backup
@@ -20,17 +20,17 @@ if  ! mount | grep "on ${BACKUPVOLUME} type" > /dev/null
         # Write an email and complain
         COMPLAINT="Hello,\nI was looking for your backup volume $BACKUPVOLUME for checking the left space, but could not find it.\nIs it physically connected?\n Backup is important!\n\n\t Cheers,\n\t backup-bot (running on raspberry pi)"
         MESSAGE="Subject: [backup-bot] FATAL: Storage not mounted\nFrom: backup-bot@raspberry-pi\nTo: $MAILTO\n\n$COMPLAINT"
-        echo -e $MESSAGE | sendmail someone@somewhere.com
+        echo -e $MESSAGE | sendmail $MAIL
         exit
 fi
 
 
 # check if disk usage greater than altert level - if yes send mail 
-USAGE=`df -H | grep "/dev/sda1" | awk '{printf "%d", $5}'`
+USAGE=`df -H | grep $BACKUPVOLUME | awk '{printf "%d", $5}'`
 if [ $USAGE -gt $ALERT ] 
 	then
 	# Write an email and complain
         COMPLAINT="Hello,\nThere is not much space left on your backup volume $BACKUPVOLUME, more than $ALERT% are used.\nBackup is important!\n\n\t Cheers,\n\t backup-bot (running on raspberry pi)"
         MESSAGE="Subject: [backup-bot] WARNING: Low space at backup storage \nFrom: backup-bot@raspberry-pi\nTo: $MAILTO\n\n$COMPLAINT"
-        echo -e $MESSAGE | sendmail someone@somewhere.com
+        echo -e $MESSAGE | sendmail $MAIL
 fi

@@ -6,7 +6,7 @@
 # Script to send status report of raspberry pi
 
 # variables
-MAILTO="someone@somewhere.com"
+MAIL="someone@somewhere.com"
 
 # check for internet connetion, if false exit
 ping -c 5 8.8.8.8 >/dev/null 2>/dev/null
@@ -14,5 +14,5 @@ if [ $? -eq 0 ]
         then
 	INFO="Hello,\nI am online and will do your backups.\n\n\tCheers,\n\t backup-bot (running on raspberry pi)"
                 LOGWARNING="Subject: [backup-bot] INFO: Raspberry Pi online\nFrom: backup-bot@raspberry-pi\nTo: $MAILTO\n\n$INFO"
-                echo -e $LOGWARNING | sendmail someone@somewhere.com
+                echo -e $LOGWARNING | sendmail $MAIL
 fi
